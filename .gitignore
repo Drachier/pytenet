@@ -5,6 +5,7 @@ obsolete/
 *.pyc
 .ipynb_checkpoints/
 __pycache__/
+*.egg-info
 
 # ignore typical data files
 *.dat
