@@ -8,6 +8,8 @@ from scipy.linalg import expm
 
 from .mps import MPS, merge_mps_tensor_pair, split_mps_tensor
 
+__all__ = ["TrotterStep", "Trotterisation"]
+
 class TrotterStep():
     """
     A single step of a Trotterisation of a Hamiltonian. It is defined
@@ -139,7 +141,8 @@ class TrotterStep():
         """
         factor = -1j * self.factor * self.time_step_size
         ndim_half = operator.ndim // 2
-        matrix = np.reshape(operator, (ndim_half, ndim_half))
+        dim_half = np.prod(operator.shape[:ndim_half])
+        matrix = np.reshape(operator, (dim_half, dim_half))
         return expm(factor * matrix)
 
     def apply_to_mps(self,
@@ -226,6 +229,7 @@ class Trotterisation(list):
             trotter_step = TrotterStep(exp_operator,
                                        (i,i+1),
                                        time_step_size,
+                                       direction="sqrt",
                                        operator_exponentiated=True)
             trotter_steps.append(trotter_step)
         # Final Single Site Operator
@@ -233,6 +237,7 @@ class Trotterisation(list):
         trotter_step = TrotterStep(final_exp_operator,
                                    num_sites-1,
                                    time_step_size,
+                                   direction="sqrt",
                                    operator_exponentiated=True)
         trotter_steps.append(trotter_step)
         return cls(trotter_steps)

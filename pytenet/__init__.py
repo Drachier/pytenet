@@ -20,4 +20,5 @@ from .operation       import *
 from .krylov          import *
 from .minimization    import *
 from .evolution       import *
+from .trotterisation  import *
 from .util            import *
