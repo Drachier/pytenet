@@ -31,9 +31,9 @@ class TestEvolution(unittest.TestCase):
         # will be implicitly reduced by orthonormalization steps below
         qD = [np.array([0])]
         for i in range(L - 1):
-            qD.append(np.sort(np.array([q + mpoH.qd[0] for q in qD[-1]]).reshape(-1)))
+            qD.append(np.sort(np.array([q + mpoH.qd[i] for q in qD[-1]]).reshape(-1)))
         qD.append(np.array([2*spin_tot]))
-        print("hi2")
+
         # initial wavefunction as MPS with random entries
         psi = ptn.MPS(mpoH.qd, qD, fill='random', rng=rng)
         psi.orthonormalize(mode='left')
@@ -51,7 +51,7 @@ class TestEvolution(unittest.TestCase):
         # total spin operator as MPO
         Szgraph = ptn.OpGraph.from_opchains(
             [ptn.OpChain([1], [0, 0], 1.0, istart) for istart in range(L)], L, 0)
-        Sztot = ptn.MPO.from_opgraph(mpoH.qd, Szgraph, { 0: np.identity(2), 1: np.diag([0.5, -0.5]) })
+        Sztot = ptn.MPO.from_opgraph(mpoH.qd[0], Szgraph, { 0: np.identity(2), 1: np.diag([0.5, -0.5]) })
 
         # explicitly compute average spin
         spin_avr = ptn.operator_average(psi, Sztot)
