@@ -6,6 +6,7 @@ obsolete/
 .ipynb_checkpoints/
 __pycache__/
 *.egg-info
+*.coverage
 
 # ignore typical data files
 *.dat
