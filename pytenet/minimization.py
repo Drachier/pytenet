@@ -61,7 +61,7 @@ def calculate_ground_state_local_singlesite(H: MPO, psi: MPS, numsweeps: int, nu
             en, psi.A[i] = _minimize_local_energy(BL[i], BR[i], H.A[i], psi.A[i], numiter_lanczos)
             # left-orthonormalize current psi.A[i]
             psi.A[i], psi.A[i+1], psi.qD[i+1] = local_orthonormalize_left_qr(
-                                        psi.A[i], psi.A[i+1], psi.qd, psi.qD[i:i+2])
+                                        psi.A[i], psi.A[i+1], psi.qd[i], psi.qD[i:i+2])
             # update the left blocks
             BL[i+1] = contraction_operator_step_left(psi.A[i], H.A[i], BL[i])
 
@@ -70,13 +70,13 @@ def calculate_ground_state_local_singlesite(H: MPO, psi: MPS, numsweeps: int, nu
             en, psi.A[i] = _minimize_local_energy(BL[i], BR[i], H.A[i], psi.A[i], numiter_lanczos)
             # right-orthonormalize current psi.A[i]
             psi.A[i], psi.A[i-1], psi.qD[i] = local_orthonormalize_right_qr(
-                                        psi.A[i], psi.A[i-1], psi.qd, psi.qD[i:i+2])
+                                        psi.A[i], psi.A[i-1], psi.qd[i], psi.qD[i:i+2])
             # update the right blocks
             BR[i-1] = contraction_operator_step_right(psi.A[i], H.A[i], BR[i])
 
         # right-normalize leftmost tensor to ensure that 'psi' is normalized
         psi.A[0], _, psi.qD[0] = local_orthonormalize_right_qr(
-                                psi.A[0], np.array([[[1]]]), psi.qd, psi.qD[:2])
+                                psi.A[0], np.array([[[1]]]), psi.qd[i], psi.qD[:2])
 
         # record energy after each sweep
         en_min[n] = en
@@ -136,7 +136,7 @@ def calculate_ground_state_local_twosite(H: MPO, psi: MPS, numsweeps: int, numit
             # minimize local energy
             en, Am = _minimize_local_energy(BL[i], BR[i+1], Hm, Am, numiter_lanczos)
             # split Am
-            psi.A[i], psi.A[i+1], psi.qD[i+1] = split_mps_tensor(Am, psi.qd, psi.qd, [psi.qD[i], psi.qD[i+2]], 'right', tol=tol_split)
+            psi.A[i], psi.A[i+1], psi.qD[i+1] = split_mps_tensor(Am, psi.qd[i], psi.qd[i+1], [psi.qD[i], psi.qD[i+2]], 'right', tol=tol_split)
             # update the left blocks
             BL[i+1] = contraction_operator_step_left(psi.A[i], H.A[i], BL[i])
 
@@ -148,13 +148,13 @@ def calculate_ground_state_local_twosite(H: MPO, psi: MPS, numsweeps: int, numit
             # minimize local energy
             en, Am = _minimize_local_energy(BL[i], BR[i+1], Hm, Am, numiter_lanczos)
             # split Am
-            psi.A[i], psi.A[i+1], psi.qD[i+1] = split_mps_tensor(Am, psi.qd, psi.qd, [psi.qD[i], psi.qD[i+2]], 'left', tol=tol_split)
+            psi.A[i], psi.A[i+1], psi.qD[i+1] = split_mps_tensor(Am, psi.qd[i], psi.qd[i+1], [psi.qD[i], psi.qD[i+2]], 'left', tol=tol_split)
             # update the right blocks
             BR[i] = contraction_operator_step_right(psi.A[i+1], H.A[i+1], BR[i+1])
 
         # right-normalize leftmost tensor to ensure that 'psi' is normalized
         psi.A[0], _, psi.qD[0] = local_orthonormalize_right_qr(
-                                psi.A[0], np.array([[[1]]]), psi.qd, psi.qD[:2])
+                                psi.A[0], np.array([[[1]]]), psi.qd[0], psi.qD[:2])
 
         # record energy after each sweep
         en_min[n] = en
