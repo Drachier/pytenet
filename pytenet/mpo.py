@@ -1,4 +1,5 @@
 from collections.abc import Sequence, Mapping
+from typing import Union
 import numpy as np
 from .qnumber import qnumber_outer_sum, qnumber_flatten, is_qsparse
 from .bond_ops import qr
@@ -23,12 +24,12 @@ class MPO:
     right virtual bond quantum number.
     """
 
-    def __init__(self, qd: Sequence[int], qD: Sequence[Sequence[int]], fill=0.0, rng: np.random.Generator=None):
+    def __init__(self, qd: Union[Sequence[Sequence[int]],Sequence[int]], qD: Sequence[Sequence[int]], fill=0.0, rng: np.random.Generator=None):
         """
         Create a matrix product operator.
 
         Args:
-            qd: physical quantum numbers at each site (same for all sites)
+            qd: physical quantum numbers at each site
             qD: virtual bond quantum numbers (list of quantum number lists)
             fill: explicit scalar number to fill MPO tensors with, or
                   'random' to initialize tensors with random complex entries, or
@@ -36,18 +37,22 @@ class MPO:
             rng: (optional) random number generator for drawing entries
         """
         # require NumPy arrays
-        self.qd = np.array(qd)
+        qd_temp = np.array(qd)
+        if qd_temp.ndim == 1:
+            self.qd = [qd_temp for _ in range(len(qD)-1)]
+        else:
+            self.qd = [qd_temp[i] for i in range(len(qD)-1)]
         self.qD = [np.array(qDi) for qDi in qD]
         # create list of MPS tensors
-        d = len(qd)
+        d = [len(qb) for qb in self.qd]
         D = [len(qDi) for qDi in qD]
         if isinstance(fill, (int, float, complex)):
-            self.A = [np.full((d, d, D[i], D[i+1]), fill) for i in range(len(D)-1)]
+            self.A = [np.full((d[i], d[i], D[i], D[i+1]), fill) for i in range(len(D)-1)]
         elif fill == 'random':
             # random complex entries
             if rng is None:
                 rng = np.random.default_rng()
-            self.A = [crandn((d, d, D[i], D[i+1]), rng) / np.sqrt(d*D[i]*D[i+1]) for i in range(len(D)-1)]
+            self.A = [crandn((d[i], d[i], D[i], D[i+1]), rng) / np.sqrt(d[i]*D[i]*D[i+1]) for i in range(len(D)-1)]
         elif fill == 'postpone':
             self.A = (len(D) - 1) * [None]
         else:
@@ -55,22 +60,22 @@ class MPO:
         if fill != 'postpone':
             # enforce block sparsity structure dictated by quantum numbers
             for i in range(len(self.A)):
-                mask = qnumber_outer_sum([self.qd, -self.qd, self.qD[i], -self.qD[i+1]])
+                mask = qnumber_outer_sum([self.qd[i], -self.qd[i], self.qD[i], -self.qD[i+1]])
                 self.A[i] = np.where(mask == 0, self.A[i], 0)
 
     @classmethod
-    def identity(cls, qd: Sequence[int], L: int, scale: float = 1, dtype=complex):
+    def identity(cls, qd: Union[Sequence[Sequence[int]],Sequence[int]], L: int, scale: float = 1, dtype=complex):
         """
         Construct MPO representation of the identity operation.
         """
-        d = len(qd)
         mpo = cls(qd, (L+1)*[[0]])
         for i in range(L):
+            d = len(mpo.qd[i])
             mpo.A[i] = scale * np.identity(d, dtype=dtype).reshape((d, d, 1, 1))
         return mpo
 
     @classmethod
-    def from_opgraph(cls, qd: Sequence[int], graph: OpGraph, opmap: Mapping):
+    def from_opgraph(cls, qd: Union[Sequence[Sequence[int]],Sequence[int]], graph: OpGraph, opmap: Mapping):
         """
         Construct a MPO from an operator graph.
 
@@ -118,7 +123,7 @@ class MPO:
         op.A = Alist
         # consistency check
         for i in range(op.nsites):
-            assert is_qsparse(op.A[i], [op.qd, -op.qd, op.qD[i], -op.qD[i+1]]), \
+            assert is_qsparse(op.A[i], [op.qd[i], -op.qd[i], op.qD[i], -op.qD[i+1]]), \
                 'sparsity pattern of MPO tensor does not match quantum numbers'
         return op
 
@@ -144,8 +149,8 @@ class MPO:
         """
         Set all quantum numbers to zero (effectively disabling them).
         """
-        self.qd.fill(0)
-        for i in range(len(self.qD)):
+        for i in range(len(self.A)):
+            self.qd[i].fill(0)
             self.qD[i].fill(0)
         # enable chaining
         return self
@@ -159,9 +164,9 @@ class MPO:
         if mode == 'left':
             for i in range(len(self.A) - 1):
                 self.A[i], self.A[i+1], self.qD[i+1] = local_orthonormalize_left_qr(
-                    self.A[i], self.A[i+1], self.qd, self.qD[i:i+2])
+                    self.A[i], self.A[i+1], self.qd[i], self.qD[i:i+2])
             # last tensor
-            self.A[-1], T, self.qD[-1] = local_orthonormalize_left_qr(self.A[-1], np.array([[[[1]]]]), self.qd, self.qD[-2:])
+            self.A[-1], T, self.qD[-1] = local_orthonormalize_left_qr(self.A[-1], np.array([[[[1]]]]), self.qd[-1], self.qD[-2:])
             # normalization factor (real-valued since diagonal of R matrix is real)
             assert T.shape == (1, 1, 1, 1)
             nrm = T[0, 0, 0, 0].real
@@ -173,9 +178,9 @@ class MPO:
         if mode == 'right':
             for i in reversed(range(1, len(self.A))):
                 self.A[i], self.A[i-1], self.qD[i] = local_orthonormalize_right_qr(
-                    self.A[i], self.A[i-1], self.qd, self.qD[i:i+2])
+                    self.A[i], self.A[i-1], self.qd[i], self.qD[i:i+2])
             # first tensor
-            self.A[0], T, self.qD[0] = local_orthonormalize_right_qr(self.A[0], np.array([[[[1]]]]), self.qd, self.qD[:2])
+            self.A[0], T, self.qD[0] = local_orthonormalize_right_qr(self.A[0], np.array([[[[1]]]]), self.qd[0], self.qD[:2])
             # normalization factor (real-valued since diagonal of R matrix is real)
             assert T.shape == (1, 1, 1, 1)
             nrm = T[0, 0, 0, 0].real
@@ -272,7 +277,6 @@ def add_mpo(op0: MPO, op1: MPO, alpha=1) -> MPO:
     L = op0.nsites
     # physical quantum numbers must agree
     assert np.array_equal(op0.qd, op1.qd)
-    d = len(op0.qd)
 
     # initialize with dummy tensors and bond quantum numbers
     op = MPO(op0.qd, (L+1)*[[0]])
@@ -287,7 +291,7 @@ def add_mpo(op0: MPO, op1: MPO, alpha=1) -> MPO:
         # simply add MPO tensors
         op.A[0] = op0.A[0] + alpha*op1.A[0]
         # consistency check
-        assert is_qsparse(op.A[0], [op.qd, -op.qd, op.qD[0], -op.qD[1]]), \
+        assert is_qsparse(op.A[0], [op.qd[0], -op.qd[0], op.qD[0], -op.qD[1]]), \
             'sparsity pattern of MPO tensor does not match quantum numbers'
     elif L > 1:
         # combine virtual bond quantum numbers
@@ -307,13 +311,14 @@ def add_mpo(op0: MPO, op1: MPO, alpha=1) -> MPO:
             s0 = op0.A[i].shape
             s1 = op1.A[i].shape
             # form block-diagonal tensor
+            d = len(op0.qd[i])
             op.A[i] = np.block([[op0.A[i], np.zeros((d, d, s0[2], s1[3]))], [np.zeros((d, d, s1[2], s0[3])), op1.A[i]]])
         # rightmost tensor
         op.A[-1] = np.block([[op0.A[-1]], [op1.A[-1]]])
 
         # consistency check
         for i in range(1, L):
-            assert is_qsparse(op.A[i], [op.qd, -op.qd, op.qD[i], -op.qD[i+1]]), \
+            assert is_qsparse(op.A[i], [op.qd[i], -op.qd[i], op.qD[i], -op.qD[i+1]]), \
                 'sparsity pattern of MPO tensor does not match quantum numbers'
     return op
 
@@ -343,6 +348,6 @@ def multiply_mpo(op0: MPO, op1: MPO) -> MPO:
         assert len(s) == 6
         op.A[i] = op.A[i].reshape((s[0], s[1], s[2]*s[3], s[4]*s[5]))
         # consistency check
-        assert is_qsparse(op.A[i], [op.qd, -op.qd, op.qD[i], -op.qD[i+1]]), \
+        assert is_qsparse(op.A[i], [op.qd[i], -op.qd[i], op.qD[i], -op.qD[i+1]]), \
             'sparsity pattern of MPO tensor does not match quantum numbers'
     return op

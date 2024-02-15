@@ -26,7 +26,7 @@ class TestMPO(unittest.TestCase):
             msg='virtual bond dimension can only increase by factor of "d^2" per site')
 
         for i in range(mpo0.nsites):
-            self.assertTrue(ptn.is_qsparse(mpo0.A[i], [mpo0.qd, -mpo0.qd, mpo0.qD[i], -mpo0.qD[i+1]]),
+            self.assertTrue(ptn.is_qsparse(mpo0.A[i], [mpo0.qd[i], -mpo0.qd[i], mpo0.qD[i], -mpo0.qD[i+1]]),
                             msg='sparsity pattern of MPO tensors must match quantum numbers')
 
         rhoL = mpo0.as_matrix()
@@ -53,7 +53,7 @@ class TestMPO(unittest.TestCase):
             msg='virtual bond dimension can only increase by factor of "d^2" per site')
 
         for i in range(mpo0.nsites):
-            self.assertTrue(ptn.is_qsparse(mpo0.A[i], [mpo0.qd, -mpo0.qd, mpo0.qD[i], -mpo0.qD[i+1]]),
+            self.assertTrue(ptn.is_qsparse(mpo0.A[i], [mpo0.qd[i], -mpo0.qd[i], mpo0.qD[i], -mpo0.qD[i+1]]),
                             msg='sparsity pattern of MPO tensors must match quantum numbers')
 
         self.assertAlmostEqual(abs(cR), 1., delta=1e-12,

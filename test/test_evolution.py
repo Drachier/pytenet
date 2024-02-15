@@ -8,7 +8,6 @@ import pytenet as ptn
 class TestEvolution(unittest.TestCase):
 
     def test_tdvp_approximation(self):
-
         rng = np.random.default_rng()
 
         # number of lattice sites
@@ -28,14 +27,13 @@ class TestEvolution(unittest.TestCase):
 
         # fix total spin quantum number of wavefunction (trailing virtual bond)
         spin_tot = 2
-
         # enumerate all possible virtual bond quantum numbers (including multiplicities);
         # will be implicitly reduced by orthonormalization steps below
         qD = [np.array([0])]
         for i in range(L - 1):
-            qD.append(np.sort(np.array([q + mpoH.qd for q in qD[-1]]).reshape(-1)))
+            qD.append(np.sort(np.array([q + mpoH.qd[0] for q in qD[-1]]).reshape(-1)))
         qD.append(np.array([2*spin_tot]))
-
+        print("hi2")
         # initial wavefunction as MPS with random entries
         psi = ptn.MPS(mpoH.qd, qD, fill='random', rng=rng)
         psi.orthonormalize(mode='left')
@@ -47,10 +45,9 @@ class TestEvolution(unittest.TestCase):
             psi.A[i][:, :, Dinit:] = 0
         # orthonormalize again
         psi.orthonormalize(mode='left')
-
         self.assertEqual(psi.qD[-1][0], 2*spin_tot,
             msg='trailing bond quantum number must not change during orthonormalization')
-
+        
         # total spin operator as MPO
         Szgraph = ptn.OpGraph.from_opchains(
             [ptn.OpChain([1], [0, 0], 1.0, istart) for istart in range(L)], L, 0)
@@ -78,7 +75,6 @@ class TestEvolution(unittest.TestCase):
 
 
     def test_tdvp_symmetry(self):
-
         rng = np.random.default_rng()
 
         # number of lattice sites
