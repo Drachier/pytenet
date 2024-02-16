@@ -79,8 +79,10 @@ class TrotterStep():
         self._factor = factor
         if operator_exponentiated:
             self.exponential_operator = operator
+            self.num_sites = (operator.ndim // 2)**(1/len(acting_on))
         else:
             self.exponential_operator = self._exponentiate_operator(operator)
+            self.num_sites = operator.ndim
         self.direction = direction
 
     @property
@@ -125,7 +127,7 @@ class TrotterStep():
 
     def apply_to_mps(self,
                      mps: MPS,
-                     tol: float,
+                     tol: float = 0.0,
                      svd_distr: Union[None, str] = None) -> MPS:
         """
         Apply the Trotter step to an MPS.
@@ -145,10 +147,10 @@ class TrotterStep():
                 errstr = "The direction of the SVD has to be specified!"
                 raise ValueError(errstr)
             svd_distr = self.direction
-        if self.exponential_operator.ndim == 2:
+        if self.num_sites == 2:
             A = mps.A[self.acting_on[0]]
             A = np.tensordot(self.exponential_operator, A, axes=(1,0))
-        elif self.exponential_operator.ndim == 4:
+        elif self.num_sites == 4:
             leftsite = self.acting_on[0]
             rightsite = self.acting_on[1]
             Amerged = merge_mps_tensor_pair(mps.A[leftsite],
@@ -156,7 +158,7 @@ class TrotterStep():
             Amerged = np.tensordot(self.exponential_operator,
                                    Amerged,
                                    axes=(1,0))
-            A = split_mps_tensor(Amerged, mps.qd, mps.qd,
+            A = split_mps_tensor(Amerged, mps.qd[leftsite], mps.qd[rightsite],
                                  [mps.qD[leftsite], mps.qD[rightsite+1]],
                                  svd_distr, tol)
             mps.A[leftsite], mps.A[rightsite], mps.qD[rightsite] = A
