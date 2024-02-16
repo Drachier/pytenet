@@ -90,34 +90,12 @@ class TrotterStep():
         """
         return self._time_step_size
 
-    @time_step_size.setter
-    def time_step_size(self, value: Number) -> None:
-        """
-        Set the size of the time step dt.
-
-        This means the exponential operator has to be
-        updated.
-        """
-        self._time_step_size = value
-        self.exponential_operator = self._exponentiate_operator(self.exponential_operator)
-
     @property
     def factor(self) -> Number:
         """
         A factor by which the operator is multiplied.
         """
         return self._factor
-
-    @factor.setter
-    def factor(self, value: Number) -> None:
-        """
-        Set the factor by which the operator is multiplied.
-
-        This means the exponential operator has to be
-        updated.
-        """
-        self._factor = value
-        self.exponential_operator = self._exponentiate_operator(self.exponential_operator)
 
     def _init_swap_list(self,
                         swaps: Union[None,Tuple[int,int],List[Tuple[int,int]]]) -> List[Tuple[int,int]]:
