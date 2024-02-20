@@ -191,14 +191,29 @@ class Trotterisation(list):
                                               num_sites: int) -> Self:
         """
         Create a Trotterisation for a shift-invariant Hamiltonian.
+
+        Args:
+            two_site_operator (np.ndarray): The two site operator applied to every
+            pair of neighbouring sites. It should have the shape (dim,dim,dim,dim),
+            where the first two legs are the output legs and the last two are the
+            input legs.
+            single_site_operator: The single site operator applied to every site.
+            It should have the shae (dim,dim), where the first leg is the output and
+            the second leg the input.
+            time_step_site (Number): A number representing the time step site used to
+            contruct the trotter steps.
+            num_sites (int): The number of sites of the system represented by the shift-
+            invariant Hamiltonian.
         """
         trotter_steps = []
+        dim = single_site_operator.shape[0]
         extended_single_site_operator = np.kron(single_site_operator,
-                                                np.eye(single_site_operator.shape[0]))
+                                                np.eye(dim))
+        two_site_operator = two_site_operator.reshape((dim**2,dim**2))
         total_operator = two_site_operator + extended_single_site_operator
         exp_operator = expm(-1j * time_step_size * total_operator)
         # Even Sites
-        for i in range(num_sites - 1,2):
+        for i in range(0,num_sites - 1,2):
             trotter_step = TrotterStep(exp_operator,
                                        (i,i+1),
                                        time_step_size,
@@ -221,4 +236,3 @@ class Trotterisation(list):
                                    operator_exponentiated=True)
         trotter_steps.append(trotter_step)
         return cls(trotter_steps)
-
