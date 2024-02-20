@@ -75,6 +75,30 @@ class MPO:
         return mpo
 
     @classmethod
+    def no_quantum_numbers(cls, phys_dim: Union[int, Sequence[int]], bond_dims: Sequence[int], fill=0.0, rng: np.random.Generator=None):
+        """
+        Construct a matrix product operator without quantum numbers.
+
+        Args:
+            phys_dim: physical dimension at each site, or list of physical dimensions
+            bond_dims: virtual bond dimensions. The first and last bond dimension have to be 1.
+            fill: explicit scalar number to fill MPO tensors with, or
+                  'random' to initialize tensors with random complex entries
+            fill: explicit scalar number to fill MPO tensors with, or
+                  'random' to initialize tensors with random complex entries, or
+                  'postpone' to leave MPO tensors unallocated
+            rng: (optional) random number generator for drawing entries
+        """
+        assert bond_dims[0] == 1 and bond_dims[-1] == 1, "First and last bond dimension must be 1!"
+        num_sites = len(bond_dims) - 1
+        if isinstance(phys_dim, int):
+            phys_dim = [phys_dim] * num_sites
+        # Create zero quantum numbers
+        qd = [np.zeros(d, dtype=int) for d in phys_dim]
+        qD = [np.zeros(D, dtype=int) for D in bond_dims]
+        return cls(qd, qD, fill=fill, rng=rng)
+
+    @classmethod
     def from_opgraph(cls, qd: Union[Sequence[Sequence[int]],Sequence[int]], graph: OpGraph, opmap: Mapping):
         """
         Construct a MPO from an operator graph.

@@ -80,6 +80,28 @@ class MPS:
         D = [self.A[i].shape[1] for i in range(len(self.A))]
         D.append(self.A[-1].shape[2])
         return D
+    
+    @classmethod
+    def no_quantum_numbers(cls, phys_dim: Union[int,Sequence[int]], bond_dim: Sequence[int], fill=0.0, rng: np.random.Generator=None):
+        """
+        Create a matrix product state without quantum numbers.
+
+            Args:
+            phys_dim: physical dimension at each site, or list of physical dimensions
+            bond_dims: virtual bond dimensions. The first and last bond dimension have to be 1.
+            fill: explicit scalar number to fill MPO tensors with, or
+                  'random' to initialize tensors with random complex entries
+            fill: explicit scalar number to fill MPO tensors with, or
+                  'random' to initialize tensors with random complex entries, or
+                  'postpone' to leave MPO tensors unallocated
+            rng: (optional) random number generator for drawing entries
+        """
+        assert bond_dim[0] == 1 and bond_dim[-1] == 1, "First and last bond dimension must be 1!"
+        if isinstance(phys_dim, int):
+            phys_dim = [phys_dim] * (len(bond_dim) - 1)
+        qd = [np.zeros(d, dtype=int) for d in phys_dim]
+        qD = [np.zeros(D, dtype=int) for D in bond_dim]
+        return cls(qd, qD, fill, rng)
 
     def zero_qnumbers(self):
         """
