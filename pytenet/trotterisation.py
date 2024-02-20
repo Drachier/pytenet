@@ -24,8 +24,7 @@ class TrotterStep():
         are the input dimensions. The legs should by in the order of
         the sites they are applied to.
         acting_on (Union[int, Tuple[int,int]]): The indices of the
-        first and last site+1 to be acted upon by the operator. The
-        syntax is the same as for slicing in Python. If an integer
+        first and last site to be acted upon by the operator. If an integer
         is given, the operator is applied to the site with this index.
         time_step_size (Number): The size of the time step dt.
         factor (Number): A factor by which the operator is multiplied.
@@ -67,7 +66,7 @@ class TrotterStep():
         Initialize the Trotter step.
         """
         if isinstance(acting_on, int):
-            acting_on = (acting_on,acting_on+1)
+            acting_on = (acting_on,)
         self.acting_on = acting_on
         if operator_exponentiated:
             assert operator.ndim == 2

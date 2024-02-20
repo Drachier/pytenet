@@ -80,25 +80,112 @@ class TestTrotterisation(unittest.TestCase):
 
     def setUp(self) -> None:
         self.time_step_size = 0.02
-        self.num_sites = 5
+        self.num_sites_odd = 5
+        self.num_sites_even = 6
 
-    def test_brickwall_only_two_site_interaction(self):
+    def test_brickwall_only_two_site_interaction_odd(self):
+        """
+        Test the creation for a brickwall circuit with only two site interactions and an odd number of sites.
+        """
         random_twosite_operator = ptn.crandn((2,2,2,2))
         zero_single_site_operator = np.zeros((2,2))
         brickwall_circuit = ptn.Trotterisation.shift_invariant_hamiltonian_brickwall(random_twosite_operator,
                                                                                      zero_single_site_operator,
                                                                                      self.time_step_size,
-                                                                                     self.num_sites)
+                                                                                     self.num_sites_odd)
         random_twosite_operator = np.reshape(random_twosite_operator,
                                              (4,4))
         exponentiated_twosite = expm(-1j*self.time_step_size*random_twosite_operator)
+        self.assertEqual(5,len(brickwall_circuit))
         site_list = [(0,1),(2,3),(1,2),(3,4)]
-        print([trotter.acting_on for trotter in brickwall_circuit])
-        self.assertEqual(4,len(brickwall_circuit))
         for i, sites in enumerate(site_list):
             trotter_step = brickwall_circuit[i]
             self.assertEqual(sites, trotter_step.acting_on)
-            self.assertTrue(np.allclose(exponentiated_twosite,trotter_step.exponential_operator))
+            self.assertTrue(np.allclose(exponentiated_twosite,
+                                        trotter_step.exponential_operator))
+        self.assertTrue(np.allclose(np.eye(2),
+                                    brickwall_circuit[-1].exponential_operator))
+        self.assertEqual((4, ), brickwall_circuit[-1].acting_on)
+
+    def test_brickwall_only_two_site_interaction_even(self):
+        """
+        Test the creation for a brickwall circuit with only two site interactions and an even number of sites.
+        """
+        random_twosite_operator = ptn.crandn((2,2,2,2))
+        zero_single_site_operator = np.zeros((2,2))
+        brickwall_circuit = ptn.Trotterisation.shift_invariant_hamiltonian_brickwall(random_twosite_operator,
+                                                                                     zero_single_site_operator,
+                                                                                     self.time_step_size,
+                                                                                     self.num_sites_even)
+        random_twosite_operator = np.reshape(random_twosite_operator,
+                                             (4,4))
+        exponentiated_twosite = expm(-1j*self.time_step_size*random_twosite_operator)
+        self.assertEqual(6,len(brickwall_circuit))
+        site_list = [(0,1),(2,3),(4,5),(1,2),(3,4)]
+        for i, sites in enumerate(site_list):
+            trotter_step = brickwall_circuit[i]
+            self.assertEqual(sites, trotter_step.acting_on)
+            self.assertTrue(np.allclose(exponentiated_twosite,
+                                        trotter_step.exponential_operator))
+        self.assertTrue(np.allclose(np.eye(2),
+                                    brickwall_circuit[-1].exponential_operator))
+        self.assertEqual((5, ), brickwall_circuit[-1].acting_on)
+
+    def test_brickwall_odd_num_sites(self):
+        """
+        Fully tests the creation of a brickwall circuit with an odd number of sites.
+        """
+        random_twosite_operator = ptn.crandn((2,2,2,2))
+        random_single_site_operator = ptn.crandn((2,2))
+        brickwall_circuit = ptn.Trotterisation.shift_invariant_hamiltonian_brickwall(random_twosite_operator,
+                                                                                     random_single_site_operator,
+                                                                                     self.time_step_size,
+                                                                                     self.num_sites_odd)
+        random_twosite_operator = np.reshape(random_twosite_operator,
+                                             (4,4))
+        random_twosite_operator += np.kron(random_single_site_operator,
+                                           np.eye(2))
+        exponentiated_twosite = expm(-1j*self.time_step_size*random_twosite_operator)
+
+        self.assertEqual(5,len(brickwall_circuit))
+        site_list = [(0,1),(2,3),(1,2),(3,4)]
+        for i, sites in enumerate(site_list):
+            trotter_step = brickwall_circuit[i]
+            self.assertEqual(sites, trotter_step.acting_on)
+            self.assertTrue(np.allclose(exponentiated_twosite,
+                                        trotter_step.exponential_operator))
+        exponentiated_single = expm(-1j*self.time_step_size*random_single_site_operator)
+        self.assertTrue(np.allclose(exponentiated_single,
+                                    brickwall_circuit[-1].exponential_operator))
+        self.assertEqual((4, ), brickwall_circuit[-1].acting_on)
+
+    def test_brickwall_even_num_sites(self):
+        """
+        Fully tests the creation of a brickwall circuit with an even number of sites.
+        """
+        random_twosite_operator = ptn.crandn((2,2,2,2))
+        random_single_site_operator = ptn.crandn((2,2))
+        brickwall_circuit = ptn.Trotterisation.shift_invariant_hamiltonian_brickwall(random_twosite_operator,
+                                                                                     random_single_site_operator,
+                                                                                     self.time_step_size,
+                                                                                     self.num_sites_even)
+        random_twosite_operator = np.reshape(random_twosite_operator,
+                                             (4,4))
+        random_twosite_operator += np.kron(random_single_site_operator,
+                                           np.eye(2))
+        exponentiated_twosite = expm(-1j*self.time_step_size*random_twosite_operator)
+
+        self.assertEqual(6,len(brickwall_circuit))
+        site_list = [(0,1),(2,3),(4,5),(1,2),(3,4)]
+        for i, sites in enumerate(site_list):
+            trotter_step = brickwall_circuit[i]
+            self.assertEqual(sites, trotter_step.acting_on)
+            self.assertTrue(np.allclose(exponentiated_twosite,
+                                        trotter_step.exponential_operator))
+        exponentiated_single = expm(-1j*self.time_step_size*random_single_site_operator)
+        self.assertTrue(np.allclose(exponentiated_single,
+                                    brickwall_circuit[-1].exponential_operator))
+        self.assertEqual((5, ), brickwall_circuit[-1].acting_on)
 
 if __name__ == '__main__':
     unittest.main()
