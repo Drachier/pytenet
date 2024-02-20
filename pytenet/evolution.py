@@ -12,7 +12,7 @@ from .qnumber import qnumber_flatten, is_qsparse
 from .bond_ops import qr
 from .trotterisation import Trotterisation
 
-__all__ = ['integrate_local_singlesite', 'integrate_local_twosite']
+__all__ = ['integrate_local_singlesite', 'integrate_local_twosite', 'tebd_evolution']
 
 
 def integrate_local_singlesite(H: MPO, psi: MPS, dt, numsteps: int, numiter_lanczos: int = 25):
@@ -206,26 +206,19 @@ def _local_bond_step(L, R, C, dt, numiter: int):
         lambda x: apply_local_bond_contraction(L, R, x.reshape(C.shape)).reshape(-1),
             C.reshape(-1), -dt, numiter, hermitian=True).reshape(C.shape)
 
-def tebd_evolution(trotter: Trotterisation, psi: MPS, dt: float,
-                   numsteps: int, tol_split: float = 0) -> float:
+def tebd_evolution(trotter: Trotterisation, psi: MPS,
+                   numsteps: int, tol_split: float = 0):
     """
-    Implements the time-evolving block-decimation (TEBD) algorithm for MPS
+    Implements the time-evolving block-decimation (TEBD) algorithm for MPS.
+    Note that the time-step size is determined by the Trotterisation object.
 
     Args:
         H (BlockDecimation): The block form of the Hamiltonian
         psi (MPS): The intial quantum state as an MPS
-        dt (float): Time step size
         numsteps (int): Number of time steps
         tol_split (float, optional): tolerance for SVD-splitting
          of neighboring MPS tensors. Defaults to 0.
-
-    Returns:
-        float: The norm of the initial state
     """
-    norm = psi.orthonormalize(mode='right')
-    for trotter_step in trotter:
-        trotter_step.time_step_size = dt
     for n in range(numsteps):
         for trotter_step in trotter:
-            trotter_step.apply_to_mps(psi, tol=tol_split)
-    return norm
+            psi = trotter_step.apply_to_mps(psi, tol=tol_split)

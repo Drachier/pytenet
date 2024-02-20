@@ -75,7 +75,7 @@ class TestTrotterStepMethods(unittest.TestCase):
         found_resultig_state = trotterstep.apply_to_mps(self.psi).as_vector()
         self.assertTrue(np.allclose(expected_resulting_state,
                                     found_resultig_state))
-        
+
 class TestTrotterisation(unittest.TestCase):
 
     def setUp(self) -> None:
@@ -100,12 +100,12 @@ class TestTrotterisation(unittest.TestCase):
         site_list = [(0,1),(2,3),(1,2),(3,4)]
         for i, sites in enumerate(site_list):
             trotter_step = brickwall_circuit[i]
-            self.assertEqual(sites, trotter_step.acting_on)
+            self.assertEqual(range(sites[0],sites[1]+1), trotter_step.acting_on)
             self.assertTrue(np.allclose(exponentiated_twosite,
                                         trotter_step.exponential_operator))
         self.assertTrue(np.allclose(np.eye(2),
                                     brickwall_circuit[-1].exponential_operator))
-        self.assertEqual((4, ), brickwall_circuit[-1].acting_on)
+        self.assertEqual(range(4,5), brickwall_circuit[-1].acting_on)
 
     def test_brickwall_only_two_site_interaction_even(self):
         """
@@ -124,12 +124,12 @@ class TestTrotterisation(unittest.TestCase):
         site_list = [(0,1),(2,3),(4,5),(1,2),(3,4)]
         for i, sites in enumerate(site_list):
             trotter_step = brickwall_circuit[i]
-            self.assertEqual(sites, trotter_step.acting_on)
+            self.assertEqual(range(sites[0],sites[1]+1), trotter_step.acting_on)
             self.assertTrue(np.allclose(exponentiated_twosite,
                                         trotter_step.exponential_operator))
         self.assertTrue(np.allclose(np.eye(2),
                                     brickwall_circuit[-1].exponential_operator))
-        self.assertEqual((5, ), brickwall_circuit[-1].acting_on)
+        self.assertEqual(range(5,6), brickwall_circuit[-1].acting_on)
 
     def test_brickwall_odd_num_sites(self):
         """
@@ -151,13 +151,13 @@ class TestTrotterisation(unittest.TestCase):
         site_list = [(0,1),(2,3),(1,2),(3,4)]
         for i, sites in enumerate(site_list):
             trotter_step = brickwall_circuit[i]
-            self.assertEqual(sites, trotter_step.acting_on)
+            self.assertEqual(range(sites[0],sites[1]+1), trotter_step.acting_on)
             self.assertTrue(np.allclose(exponentiated_twosite,
                                         trotter_step.exponential_operator))
         exponentiated_single = expm(-1j*self.time_step_size*random_single_site_operator)
         self.assertTrue(np.allclose(exponentiated_single,
                                     brickwall_circuit[-1].exponential_operator))
-        self.assertEqual((4, ), brickwall_circuit[-1].acting_on)
+        self.assertEqual(range(4,5), brickwall_circuit[-1].acting_on)
 
     def test_brickwall_even_num_sites(self):
         """
@@ -179,13 +179,13 @@ class TestTrotterisation(unittest.TestCase):
         site_list = [(0,1),(2,3),(4,5),(1,2),(3,4)]
         for i, sites in enumerate(site_list):
             trotter_step = brickwall_circuit[i]
-            self.assertEqual(sites, trotter_step.acting_on)
+            self.assertEqual(range(sites[0],sites[1]+1), trotter_step.acting_on)
             self.assertTrue(np.allclose(exponentiated_twosite,
                                         trotter_step.exponential_operator))
         exponentiated_single = expm(-1j*self.time_step_size*random_single_site_operator)
         self.assertTrue(np.allclose(exponentiated_single,
                                     brickwall_circuit[-1].exponential_operator))
-        self.assertEqual((5, ), brickwall_circuit[-1].acting_on)
+        self.assertEqual(range(5,6), brickwall_circuit[-1].acting_on)
 
 if __name__ == '__main__':
     unittest.main()

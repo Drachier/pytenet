@@ -55,7 +55,7 @@ class TrotterStep():
     """
 
     def __init__(self, operator: np.ndarray,
-                 acting_on: Union[int, Tuple[int,int]],
+                 acting_on: Union[int, Tuple[int,int], Tuple[int, ]],
                  time_step_size: Number,
                  factor: Number = 1,
                  swaps_before: Union[None,Tuple[int,int],List[Tuple[int,int]]]=None,
@@ -66,7 +66,11 @@ class TrotterStep():
         Initialize the Trotter step.
         """
         if isinstance(acting_on, int):
-            acting_on = (acting_on,)
+            acting_on = range(acting_on, acting_on + 1)
+        elif len(acting_on) == 1:
+            acting_on = range(acting_on[0], acting_on[0] + 1)
+        else:
+            acting_on = range(acting_on[0], acting_on[1] + 1)
         self.acting_on = acting_on
         if operator_exponentiated:
             assert operator.ndim == 2
@@ -78,10 +82,8 @@ class TrotterStep():
         self._factor = factor
         if operator_exponentiated:
             self.exponential_operator = operator
-            self.num_sites = (operator.ndim // 2)**(1/len(acting_on))
         else:
             self.exponential_operator = self._exponentiate_operator(operator)
-            self.num_sites = operator.ndim
         self.direction = direction
 
     @property
@@ -124,6 +126,12 @@ class TrotterStep():
         matrix = np.reshape(operator, (dim_half, dim_half))
         return expm(factor * matrix)
 
+    def num_sites(self) -> int:
+        """
+        The number of sites the operator is acting on.
+        """
+        return len(self.acting_on)
+
     def apply_to_mps(self,
                      mps: MPS,
                      tol: float = 0.0,
@@ -146,10 +154,10 @@ class TrotterStep():
                 errstr = "The direction of the SVD has to be specified!"
                 raise ValueError(errstr)
             svd_distr = self.direction
-        if self.num_sites == 2:
+        if self.num_sites() == 1:
             A = mps.A[self.acting_on[0]]
             A = np.tensordot(self.exponential_operator, A, axes=(1,0))
-        elif self.num_sites == 4:
+        elif self.num_sites() == 2:
             leftsite = self.acting_on[0]
             rightsite = self.acting_on[1]
             Amerged = merge_mps_tensor_pair(mps.A[leftsite],

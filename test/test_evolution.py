@@ -47,7 +47,7 @@ class TestEvolution(unittest.TestCase):
         psi.orthonormalize(mode='left')
         self.assertEqual(psi.qD[-1][0], 2*spin_tot,
             msg='trailing bond quantum number must not change during orthonormalization')
-        
+
         # total spin operator as MPO
         Szgraph = ptn.OpGraph.from_opchains(
             [ptn.OpChain([1], [0, 0], 1.0, istart) for istart in range(L)], L, 0)
@@ -115,6 +115,56 @@ class TestEvolution(unittest.TestCase):
         self.assertTrue(np.allclose(psi1.as_vector(), psi_ref, atol=1e-10))
         # larger deviation for two-site TDVP presumably due to varying bond dimensions
         self.assertTrue(np.allclose(psi2.as_vector(), psi_ref, atol=1e-6))
+
+    def test_tebd_approximation(self):
+        rng = np.random.default_rng()
+
+        # number of lattice sites
+        L = 5
+
+        # real-time evolution
+        dt = 0.01
+        # number of steps
+        numsteps = 12
+
+        # Construct Trotterised Brickwall Circuit
+        J =  4.0/3
+        h = -2.0/7
+        g = 0.5
+        paulix = np.array([[0, 1], [1, 0]], dtype=complex)
+        pauliz = np.array([[1, 0], [0, -1]], dtype=complex)
+        two_site_operator = np.kron(pauliz,pauliz)
+        single_site_operator = h * pauliz + g * paulix
+        trotterisation = ptn.Trotterisation.shift_invariant_hamiltonian_brickwall(two_site_operator,
+                                                                                  single_site_operator,
+                                                                                  dt,
+                                                                                  L)
+        for trotterstep in trotterisation:
+            trotterstep.direction = 'right'
+
+        # initial wavefunction as MPS with random entries
+        qd = [[0,0] for _ in range(L)]
+        qD = [[0]]
+        bond_dim = 20
+        qD.extend([bond_dim*[0] for _ in range(L-1)])
+        qD.append([0])
+        psi = ptn.MPS(qd, qD, fill='random', rng=rng)
+        psi.orthonormalize(mode='left')
+        psi.orthonormalize(mode='right')
+
+        # Reference Computation
+        H = ptn.ising_mpo(L, J, h, g).as_matrix()
+        psi_ref = expm(-1j * dt * numsteps * H) @ psi.as_vector()
+
+        # run TEBD time evolution
+        psi1 = copy.deepcopy(psi)
+        ptn.tebd_evolution(trotterisation, psi1, numsteps, tol_split=0)
+
+        # compare time-evolved wavefunctions
+        print(max(np.abs(psi1.as_vector() - psi_ref)))
+        self.assertTrue(np.allclose(psi1.as_vector(), psi_ref, atol=1e-10),
+            msg='time-evolved wavefunction obtained by TEBD time evolution must match reference')
+
 
 
 if __name__ == '__main__':
