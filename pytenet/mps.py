@@ -75,6 +75,12 @@ class MPS:
         D = [self.A[i].shape[1] for i in range(len(self.A))]
         D.append(self.A[-1].shape[2])
         return D
+    
+    def max_bond_dim(self) -> int:
+        """
+        Maximum virtual bond dimension.
+        """
+        return max(self.bond_dims)
 
     def zero_qnumbers(self):
         """
