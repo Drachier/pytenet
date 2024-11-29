@@ -75,7 +75,7 @@ class MPS:
         D = [self.A[i].shape[1] for i in range(len(self.A))]
         D.append(self.A[-1].shape[2])
         return D
-    
+
     def max_bond_dim(self) -> int:
         """
         Maximum virtual bond dimension.
@@ -87,8 +87,8 @@ class MPS:
         Set all quantum numbers to zero (effectively disabling them).
         """
         self.qd.fill(0)
-        for i in range(len(self.qD)):
-            self.qD[i].fill(0)
+        for qDi in self.qD:
+            qDi.fill(0)
         # enable chaining
         return self
 
