@@ -4,7 +4,7 @@ Implements Compression algorithms for MPS
 
 __all__ = ['rounding', 'recursive']
 
-from numpy import array, tensordot, zeros_like
+from numpy import array, tensordot
 from numpy.linalg import eigh
 
 from .bond_ops import eigh, split_matrix_svd
