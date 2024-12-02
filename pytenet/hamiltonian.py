@@ -149,6 +149,57 @@ def heisenberg_xxz_spin1_mpo(L: int, J: float, D: float, h: float) -> MPO:
     # convert to MPO
     return _local_opchains_to_mpo(qd, lopchains, L, opmap, OID.Id)
 
+def long_range_xy_chain_mpo(L: int, J: float, decay_factor: float) -> MPO:
+    """
+    Construct the long-range XY chain Hamiltonian with exponential decay
+    `sum_{i < j} J exp(-|i-j|*decay_factor) (X_i X_j + Y_i Y_j)`
+    
+    Args:
+        L:  number of lattice sites
+        J:  interaction parameter
+        decay_factor:  decay factor for the interaction strength
+    
+    Returns:
+        MPO: long-range XY chain Hamiltonian
+    """
+    # physical quantum numbers
+    qd = [0,0]
+    # spin operators
+    sigma_x = np.array([[0., 1.], [1., 0.]])
+    sigma_y = np.array([[0., -1j], [1j, 0.]])
+    id2 = np.identity(2)
+    # expontial decay
+    decay = np.exp(-decay_factor)
+    class OID(IntEnum):
+        I = 0
+        X = 1
+        Y = 2
+    opmap = {
+        OID.I: id2,
+        OID.X: sigma_x,
+        OID.Y: sigma_y,  }
+    node_init = AutOpNode(0, [], [], 0)
+    node_expX = AutOpNode(1, [], [], 0)
+    node_expY = AutOpNode(2, [], [], 0)
+    node_final = AutOpNode(3, [], [], 0)
+    autop = AutOp([node_init, node_expX, node_expY, node_final],
+                  [],
+                  [node_init.nid, node_final.nid])
+    # Identities around init and final nodes
+    autop.add_connect_edge(AutOpEdge(0, [node_init.nid, node_init.nid], [(OID.I, 1.)]))
+    autop.add_connect_edge(AutOpEdge(1, [node_final.nid, node_final.nid], [(OID.I, 1.)]))
+    # Exponential decay terms
+    autop.add_connect_edge(AutOpEdge(2, [node_init.nid, node_expX.nid], [(OID.X, decay)]))
+    autop.add_connect_edge(AutOpEdge(3, [node_init.nid, node_expY.nid], [(OID.Y, decay)]))
+    autop.add_connect_edge(AutOpEdge(4, [node_expX.nid, node_expX.nid], [(OID.I, decay)]))
+    autop.add_connect_edge(AutOpEdge(5, [node_expY.nid, node_expY.nid], [(OID.I, decay)]))
+    # Connect the exponential decay terms to the final node
+    autop.add_connect_edge(AutOpEdge(4, [node_expX.nid, node_final.nid], [(OID.X, J)]))
+    autop.add_connect_edge(AutOpEdge(5, [node_expY.nid, node_final.nid], [(OID.Y, J)]))
+    assert autop.is_consistent()
+    # convert to a graph and then to an MPO
+    graph = OpGraph.from_automaton(autop, L)
+    return MPO.from_opgraph(qd, graph, opmap)
 
 def bose_hubbard_mpo(d: int, L: int, t: float, U: float, mu: float) -> MPO:
     """
