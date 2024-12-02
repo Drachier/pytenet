@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from re import match
 import numpy as np
 from .qnumber import qnumber_outer_sum, qnumber_flatten, is_qsparse
 from .bond_ops import qr, retained_bond_indices, split_matrix_svd
@@ -209,6 +210,49 @@ class MPS:
         assert v.shape == (1, 1)
         # include scalar factor in last MPS tensor
         mps.A[-1] *= v[0, 0]
+        return mps
+    
+    def save(self, filename: str):
+        """
+        Save the MPS to a file.
+
+        The MPS is saved as a NumPy .npz file.
+        The physical quantum numbers are stored in the 'qd' field. While the
+        virtual bond quantum numbers are stored in fields 'qD0', 'qD1', etc.
+        The MPS tensors are stored in fields 'A0', 'A1', etc.
+
+        """
+        kwargs = {}
+        kwargs['qd'] = self.qd
+        for i, qDi in enumerate(self.qD):
+            kwargs[f'qD{i}'] = qDi
+        for i, Ai in enumerate(self.A):
+            kwargs[f'A{i}'] = Ai
+        np.savez(filename, **kwargs)
+
+    @classmethod
+    def load(cls, filename: str):
+        """
+        Load the MPS from a file.
+        """
+        with np.load(filename) as data:
+            qD = []
+            A = []
+            for key, value in data.items():
+                if key == 'qd':
+                    qd = value
+                elif match(r'qD\d+', key):
+                    qD.append(value)
+                elif match(r'A\d+', key):
+                    A.append(value)
+            mps = cls(qd, qD, fill='postpone')
+            mps.A = A
+        # consistency check
+        assert len(mps.A) == len(mps.qD) - 1, \
+            'number of MPS tensors does not match number of virtual bond dimensions'
+        for i in range(1, len(mps.A)):
+            assert is_qsparse(mps.A[i], [mps.qd, mps.qD[i], -mps.qD[i+1]]), \
+                'sparsity pattern of MPS tensor does not match quantum numbers'
         return mps
 
     def __add__(self, other):

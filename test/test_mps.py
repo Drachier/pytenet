@@ -1,4 +1,6 @@
 import unittest
+from copy import deepcopy
+from os import remove
 import numpy as np
 import pytenet as ptn
 
@@ -258,6 +260,36 @@ class TestMPS(unittest.TestCase):
         # compare
         self.assertTrue(np.allclose(mps.as_vector(), mps_ref, rtol=1e-12),
             msg='subtraction of two matrix product states must agree with vector representation')
+
+    def test_save_and_load(self):
+
+        rng = np.random.default_rng()
+
+        # physical quantum numbers
+        qd = rng.integers(-2, 3, size=5)
+
+        # create random matrix product state
+        D = [1, 30, 83, 102, 75, 23, 1]
+        mps0 = ptn.MPS(qd, [rng.integers(-1, 2, size=Di) for Di in D], fill='random', rng=rng)
+        ref_mps = deepcopy(mps0)
+
+        # save to file
+        filename = 'test_mps.npz'
+        mps0.save(filename)
+
+        # load from file
+        mps1 = ptn.MPS.load(filename)
+        remove(filename)
+
+        # compare
+        self.assertTrue(np.allclose(ref_mps.qd, mps1.qd),
+                        msg='physical quantum numbers')
+        for i in range(mps0.nsites):
+            self.assertTrue(np.allclose(ref_mps.qD[i], mps1.qD[i]),
+                            msg='virtual bond quantum numbers')
+            self.assertTrue(np.allclose(ref_mps.A[i], mps1.A[i]),
+                            msg='MPS tensors')
+
 
 
 if __name__ == '__main__':
