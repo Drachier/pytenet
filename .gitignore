@@ -24,3 +24,7 @@ __pycache__/
 # Ignore virtual environments
 .venv/
 *.egg-info
+
+# Ignore numpy files
+*.npy
+*.npz
